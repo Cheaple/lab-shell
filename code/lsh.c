@@ -73,6 +73,49 @@ int main(void)
   return 0;
 }
 
+// 
+void cmd_exit() {
+  // TODO: Victor
+}
+
+void cmd_cd() {
+  // TODO: Victor
+}
+
+void cmd_date() {
+  // TODO: Yule
+}
+
+void cmd_hello() {
+  // TODO: Yule
+}
+
+void cmd_ls() {
+  // TODO: Yule
+}
+
+void cmd_echo() {
+  // TODO: Yule
+}
+
+void cmd_cat() {
+  // TODO: Yule
+}
+
+void cmd_sleep() {
+  // TODO: Yule
+}
+
+void cmd_grep() {
+  // TODO: Yule
+}
+
+void cmd_diff() {
+  // TODO: Yule
+}
+
+
+
 /* Execute the given command(s).
 
  * Note: The function currently only prints the command(s).
@@ -83,7 +126,10 @@ int main(void)
  */
 static void run_cmds(Command *cmd_list)
 {
-  print_cmd(cmd_list);
+  // TODO: Ma
+  // call conrresponding cmd_***() functions 
+
+  // print_cmd(cmd_list);
 }
 
 /*
