@@ -82,40 +82,6 @@ void cmd_cd() {
   // TODO: Victor
 }
 
-void cmd_date() {
-  // TODO: Yule
-}
-
-void cmd_hello() {
-  // TODO: Yule
-}
-
-void cmd_ls() {
-  // TODO: Yule
-}
-
-void cmd_echo() {
-  // TODO: Yule
-}
-
-void cmd_cat() {
-  // TODO: Yule
-}
-
-void cmd_sleep() {
-  // TODO: Yule
-}
-
-void cmd_grep() {
-  // TODO: Yule
-}
-
-void cmd_diff() {
-  // TODO: Yule
-}
-
-
-
 /* Execute the given command(s).
 
  * Note: The function currently only prints the command(s).
@@ -126,8 +92,27 @@ void cmd_diff() {
  */
 static void run_cmds(Command *cmd_list)
 {
-  // TODO: Ma
-  // call conrresponding cmd_***() functions 
+  // TODO: Redirection, Pipe, Background Process
+  // print_cmd(cmd_list);
+  Pgm *cmd = cmd_list->pgm;
+  while (cmd) {
+    pid_t pid = fork();  // Create a child process to execute the command
+
+    if (pid == 0) {  // child process
+      execvp(cmd->pgmlist[0], cmd->pgmlist);  // if succeeded, the following will not be printed
+      printf("Command not found: %s\n", cmd->pgmlist[0]);
+      exit(EXIT_FAILURE);
+    } else if (pid < 0) {
+      printf("Failed to create child process.\n");
+    } else {  // Parent Process
+      // wait for the child process to finish
+      int status;
+      waitpid(pid, &status, 0);
+    }
+
+    cmd = cmd->next;
+  }
+
 
   // print_cmd(cmd_list);
 }
