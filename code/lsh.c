@@ -9,10 +9,10 @@
  * Add appropriate comments in your code to make it
  * easier for us while grading your assignment.
  *
- * Using assert statements in your code is a great way to catch errors early and make debugging easier.
- * Think of them as mini self-checks that ensure your program behaves as expected.
- * By setting up these guardrails, you're creating a more robust and maintainable solution.
- * So go ahead, sprinkle some asserts in your code; they're your friends in disguise!
+ * Using assert statements in your code is a great way to catch errors early and make debugging
+ * easier. Think of them as mini self-checks that ensure your program behaves as expected. By
+ * setting up these guardrails, you're creating a more robust and maintainable solution. So go
+ * ahead, sprinkle some asserts in your code; they're your friends in disguise!
  *
  * All the best!
  */
@@ -41,18 +41,14 @@ static void print_pgm(Pgm *p);
 void stripwhite(char *);
 
 pipe_node *pipe_list = NULL;
-pid_t fore_id;
 
-int main(void)
-{
-    for (;;)
-    {
+int main(void) {
+    for (;;) {
         char *line;
         line = readline("> ");
 
         // If EOF encountered, exit shell
-        if (!line)
-        {
+        if (!line) {
             // break;
         }
 
@@ -60,18 +56,14 @@ int main(void)
         stripwhite(line);
 
         // If stripped line not blank
-        if (*line)
-        {
+        if (*line) {
             add_history(line);
 
             Command cmd;
-            if (parse(line, &cmd) == 1)
-            {
+            if (parse(line, &cmd) == 1) {
                 // print_cmd(&cmd);
                 run_cmds(&cmd);
-            }
-            else
-            {
+            } else {
                 printf("Parse ERROR\n");
             }
         }
@@ -84,13 +76,12 @@ int main(void)
     return 0;
 }
 
-void cmd_exit()
-{
+void cmd_exit() {
+    // Todo: collect zombie processes
     exit(0);
 }
 
-void cmd_cd(char *dir)
-{
+void cmd_cd(char *dir) {
     int err;
     if (dir == NULL)
         err = chdir(getenv("HOME"));
@@ -108,12 +99,11 @@ void cmd_cd(char *dir)
  * 1. Implement this function so that it executes the given command(s).
  * 2. Remove the debug printing before the final submission.
  */
-void run_cmds(Command *cmd_list)
-{
-    // TODO: Redirection, Pipe, Background Process
+void run_cmds(Command *cmd_list) {
     // print_cmd(cmd_list);
     Pgm *cmd = cmd_list->pgm;
     pid_list *pdl_current = NULL;
+    pid_t foreground_id = -1;
 
     // File descriptor for input and output redirectory destination
     int input_file_fd = STDIN_FILENO;
@@ -121,138 +111,95 @@ void run_cmds(Command *cmd_list)
 
     int left_fd[2] = {0, 0}, right_fd[2] = {0, 0};
 
-    // Input Redirectory
-    if (cmd_list->rstdin)
-    {
+    // I/O Redirection
+    if (cmd_list->rstdin) {
         input_file_fd = open(cmd_list->rstdin, O_RDONLY);
-        if (input_file_fd == -1)
-        {
+        if (input_file_fd == -1) {
             fprintf(stderr, "Could not read file %s\n", cmd_list->rstdin);
             exit(EXIT_FAILURE);
         }
     }
-
-    // Output Redirectory
-    if (cmd_list->rstdout)
-    {
+    if (cmd_list->rstdout) {
         output_file_fd = open(cmd_list->rstdout, O_WRONLY);
-        if (output_file_fd == -1)
-        {
+        if (output_file_fd == -1) {
             fprintf(stderr, "Could not write file %s\n", cmd_list->rstdout);
             exit(EXIT_FAILURE);
         }
     }
 
     // Iterate execution, fork for all single command and connect the intput/output via pipes.
-    while (cmd != NULL)
-    {
+    while (cmd != NULL) {
+        // Built-in commands: exit, cd
         if (strcmp(cmd->pgmlist[0], "exit") == 0)
             cmd_exit();
-        if (strcmp(cmd->pgmlist[0], "cd") == 0)
+        if (strcmp(cmd->pgmlist[0], "cd") == 0) {
             cmd_cd(cmd->pgmlist[1]);
+            cmd = cmd->next;
+            continue;
+        }
 
         right_fd[0] = left_fd[0];
         right_fd[1] = left_fd[1];
         left_fd[0] = 0;
         left_fd[1] = 0;
 
-        if (cmd->next != NULL)
-        {
-            if (pipe(left_fd) == -1)
-            {
+        if (cmd->next != NULL) {
+            if (pipe(left_fd) == -1) {
                 fprintf(stderr, "Pipe construction failed!\n");
                 exit(EXIT_FAILURE);
             }
         }
 
-        pid_t pid;
-
-        switch (pid = fork())
-        {
-        case -1:
+        pid_t pid = fork();
+        if (pid == -1) {
             fprintf(stderr, "Child process fork failed!\n");
             exit(EXIT_FAILURE);
             break;
-
-        case 0:
-
+        } else if (pid == 0) { // Child Process
             if (cmd_list->background)
                 setpgid(getpid(), getpid());
 
-            if (left_fd[0] != 0 || left_fd[1] != 0)
-            {
+            if (left_fd[0] != 0 || left_fd[1] != 0) {
                 close(left_fd[1]);
-                if (dup2(left_fd[0], STDIN_FILENO) == -1)
-                {
+                if (dup2(left_fd[0], STDIN_FILENO) == -1) {
                     fprintf(stderr, "Pipe read end failed for process %d\n", getpid());
                     exit(EXIT_FAILURE);
                 }
             }
-            if (right_fd[1] != 0 || right_fd[0] != 0)
-            {
+            if (right_fd[1] != 0 || right_fd[0] != 0) {
                 close(right_fd[0]);
-                if (dup2(right_fd[1], STDOUT_FILENO) == -1)
-                {
+                if (dup2(right_fd[1], STDOUT_FILENO) == -1) {
                     fprintf(stderr, "Pipe write end failed for process %d\n", getpid());
                     exit(EXIT_FAILURE);
                 }
             }
 
+            // Input Redirection for the first command
             if (input_file_fd != 0 && cmd->next == NULL)
                 dup2(input_file_fd, STDIN_FILENO);
 
+            // Outout Redirection for the last command
             if (output_file_fd != 0 && cmd == cmd_list->pgm)
                 dup2(output_file_fd, STDOUT_FILENO);
 
+            // Execute a single command
             execvp(cmd->pgmlist[0], cmd->pgmlist);
             fprintf(stderr, "Command not found: %s\n", cmd->pgmlist[0]);
             exit(EXIT_FAILURE);
-
-            // break;
-
-        default:
-            if (right_fd[0] != 0 || right_fd[1] != 0)
-            {
+        } else { // Parent Process
+            if (foreground_id == -1) {
+                foreground_id = pid; // Record the last foreground command' pid
+            }
+            if (right_fd[0] != 0 || right_fd[1] != 0) {
                 close(right_fd[0]);
                 close(right_fd[1]);
             }
-            if (cmd->next == NULL)
-                fore_id = pid;
+            if (cmd->next == NULL && !cmd_list->background)
+                waitpid(foreground_id, NULL, 0); // Wait for the foreground process to finish
+
             cmd = cmd->next;
-            break;
         }
-
-        // background command execution
-        /*
-        pid_t pid = fork(); // Create a child process to execute the command
-
-        if (pid == 0)
-        {                                          // child process
-            execvp(cmd->pgmlist[0], cmd->pgmlist); // if succeeded, the following will not be printed
-            printf("Command not found: %s\n", cmd->pgmlist[0]);
-            exit(EXIT_FAILURE);
-        }
-        else if (pid < 0)
-        {
-            printf("Failed to create child process.\n");
-        }
-        else // Parent Process
-        {
-            if (cmd_list->background == true) // background
-            {
-                // printf("[%d] %d\n", backno_alloc(BackNum), getpid());
-                break;
-            }
-            // wait for the child process to finish
-            int status;
-            waitpid(pid, &status, 0);
-        }
-
-        cmd = cmd->next;
-        */
     }
-
-    // print_cmd(cmd_list);
 }
 
 /*
@@ -260,8 +207,7 @@ void run_cmds(Command *cmd_list)
  *
  * Helper function, no need to change. Might be useful to study as inpsiration.
  */
-static void print_cmd(Command *cmd_list)
-{
+static void print_cmd(Command *cmd_list) {
     printf("------------------------------\n");
     printf("Parse OK\n");
     printf("stdin:      %s\n", cmd_list->rstdin ? cmd_list->rstdin : "<none>");
@@ -276,14 +222,10 @@ static void print_cmd(Command *cmd_list)
  *
  * Helper function, no need to change. Might be useful to study as inpsiration.
  */
-static void print_pgm(Pgm *p)
-{
-    if (p == NULL)
-    {
+static void print_pgm(Pgm *p) {
+    if (p == NULL) {
         return;
-    }
-    else
-    {
+    } else {
         char **pl = p->pgmlist;
 
         /* The list is in reversed order so print
@@ -291,8 +233,7 @@ static void print_pgm(Pgm *p)
          */
         print_pgm(p->next);
         printf("            * [ ");
-        while (*pl)
-        {
+        while (*pl) {
             printf("%s ", *pl++);
         }
         printf("]\n");
@@ -303,23 +244,19 @@ static void print_pgm(Pgm *p)
  *
  * Helper function, no need to change.
  */
-void stripwhite(char *string)
-{
+void stripwhite(char *string) {
     size_t i = 0;
 
-    while (isspace(string[i]))
-    {
+    while (isspace(string[i])) {
         i++;
     }
 
-    if (i)
-    {
+    if (i) {
         memmove(string, string + i, strlen(string + i) + 1);
     }
 
     i = strlen(string) - 1;
-    while (i > 0 && isspace(string[i]))
-    {
+    while (i > 0 && isspace(string[i])) {
         i--;
     }
 
