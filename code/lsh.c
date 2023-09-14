@@ -24,6 +24,7 @@
 #include <readline/history.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h>
@@ -120,7 +121,7 @@ void run_cmds(Command *cmd_list) {
         }
     }
     if (cmd_list->rstdout) {
-        output_file_fd = open(cmd_list->rstdout, O_WRONLY);
+        output_file_fd = open(cmd_list->rstdout, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
         if (output_file_fd == -1) {
             fprintf(stderr, "Could not write file %s\n", cmd_list->rstdout);
             exit(EXIT_FAILURE);
@@ -185,7 +186,7 @@ void run_cmds(Command *cmd_list) {
             // Execute a single command
             execvp(cmd->pgmlist[0], cmd->pgmlist);
             fprintf(stderr, "Command not found: %s\n", cmd->pgmlist[0]);
-            exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
         } else { // Parent Process
             if (foreground_id == -1) {
                 foreground_id = pid; // Record the last foreground command' pid
