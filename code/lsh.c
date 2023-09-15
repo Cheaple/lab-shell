@@ -41,7 +41,6 @@ static void print_cmd(Command *cmd);
 static void print_pgm(Pgm *p);
 void stripwhite(char *);
 
-pipe_node *pipe_list = NULL;
 
 int main(void) {
     for (;;) {
@@ -50,7 +49,7 @@ int main(void) {
 
         // If EOF encountered, exit shell
         if (!line) {
-            // break;
+            break;
         }
 
         // Remove leading and trailing whitespace from the line
@@ -186,7 +185,7 @@ void run_cmds(Command *cmd_list) {
             // Execute a single command
             execvp(cmd->pgmlist[0], cmd->pgmlist);
             fprintf(stderr, "Command not found: %s\n", cmd->pgmlist[0]);
-            // exit(EXIT_FAILURE);
+            exit(EXIT_FAILURE);
         } else { // Parent Process
             if (foreground_id == -1) {
                 foreground_id = pid; // Record the last foreground command' pid
