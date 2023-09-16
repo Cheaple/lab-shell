@@ -41,8 +41,11 @@ static void print_cmd(Command *cmd);
 static void print_pgm(Pgm *p);
 void stripwhite(char *);
 
+void handleSIGCHLD(int sig);
 
 int main(void) {
+    signal(SIGCHLD, handleSIGCHLD);
+
     for (;;) {
         char *line;
         line = readline("> ");
@@ -261,4 +264,12 @@ void stripwhite(char *string) {
     }
 
     string[++i] = '\0';
+}
+
+// Collect Zombies
+void handleSIGCHLD(int sig) {
+    pid_t child_pid;
+    while ((child_pid = waitpid(-1, NULL, WNOHANG)) > 0) {
+
+    }
 }
