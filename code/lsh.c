@@ -105,7 +105,7 @@ void cmd_cd(char *dir) {
  * 2. Remove the debug printing before the final submission.
  */
 void run_cmds(Command *cmd_list) {
-   print_cmd(cmd_list);
+    // print_cmd(cmd_list);
     Pgm *cmd = cmd_list->pgm;
     pid_list *pdl_current = NULL;
     foreground_id = -1;
@@ -281,8 +281,9 @@ void handleSIGCHLD() {
 
 void handleSIGINT() {
     if (foreground_id != -1) {
-        kill(-foreground_id, SIGINT);
+        kill(foreground_id, SIGINT);
     }
+    printf("\n");
     // Restore default signal handler for SIGINT
     signal(SIGINT, SIG_DFL);
 }

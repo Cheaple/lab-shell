@@ -1,5 +1,5 @@
 from datetime import datetime
-from os import mkdir, setsid
+from os import mkdir, setsid, killpg, getpgid
 from pathlib import Path
 from signal import SIGINT
 from subprocess import run, PIPE, Popen, TimeoutExpired
@@ -140,13 +140,12 @@ class TestLsh(unittest.TestCase):
         # Check if ls output has hello.txt to verify that cd works
         self.assertIn("hello.txt", out)
 
-    def test_date_grep(self):
+    def test_echo_rev(self):
         r"""
-        date | grep 20
+        Execute "echo ananab | rev" and expect to find banana in the output
         """
-        current_year = str(datetime.now().year)
-        out = self.run_cmd(cmd="date | grep 20", check_for_zombies=True)
-        self.assertIn(current_year, out)
+        out = self.run_cmd(cmd='echo ananab | rev', check_for_zombies=True)
+        self.assertIn("banana", out)
 
     def test_echo_grep_wc(self):
         r"""
@@ -157,7 +156,7 @@ class TestLsh(unittest.TestCase):
 
     def test_bg_and_fg(self):
         r"""
-        Execute "sleep 60 &" and then "echo Hello"
+        Execute "sleep 3 &" and then "echo Hello"
         """
         lsh = Popen(str(self.lsh), stdin=PIPE, stdout=PIPE, stderr=PIPE, preexec_fn=setsid)
         lsh.stdin.write("sleep 3 &\n".encode())
@@ -186,9 +185,9 @@ class TestLsh(unittest.TestCase):
         self.assertIn("hello\n", out.decode())
         self.assertEqual(0, lsh.returncode, msg=f"This should return 0: {err}")
 
-    def test_SIGINT(self):
+    def test_CTRL_C(self):
         r"""
-        Send SIGINT while "sleep 60"
+        Simulate pressing CTRL-C while "sleep 60"
         """
         lsh = Popen(str(self.lsh), stdin=PIPE, stdout=PIPE, stderr=PIPE, preexec_fn=setsid)
         lsh.stdin.write("sleep 60\n".encode())
@@ -197,8 +196,8 @@ class TestLsh(unittest.TestCase):
         # Give lsh some time to start and invoke the cmd
         sleep(1)
 
-        # Kill the foreground process
-        lsh.send_signal(SIGINT)
+        # Simulate pressing CTRL-C by sending SIGINT to the entire lsh process group
+        killpg(getpgid(lsh.pid), SIGINT)
 
         self.check_for_zombies(lsh.pid)
 
@@ -206,9 +205,9 @@ class TestLsh(unittest.TestCase):
         _, err = lsh.communicate()
         self.assertEqual(0, lsh.returncode, msg=f"This should return 0: {err}")
 
-    def test_SIGINT_with_fg_and_bg(self):
+    def test_CTRL_C_with_fg_and_bg(self):
         r"""
-        Execute "sleep 60 &" then "sleep 60" and then SIGINT
+        Execute "sleep 60 &" then "sleep 60" and then simulate pressing Ctrl-C
         """
         lsh = Popen(str(self.lsh), stdin=PIPE, stdout=PIPE, stderr=PIPE, preexec_fn=setsid)
         lsh.stdin.write("sleep 60 &\n".encode())
@@ -230,8 +229,8 @@ class TestLsh(unittest.TestCase):
         self.assertEqual(2, len(lsh_info.children()), msg="You do not seem to support a foreground process "
                                                           "and a background process at the same time")
 
-        # Kill the foreground process
-        lsh.send_signal(SIGINT)
+        # Simulate pressing "Ctrl-C" by sending SIGINT to the entire lsh process group
+        killpg(getpgid(lsh.pid), SIGINT)
         sleep(1)
 
         self.assertEqual(1, len(lsh_info.children()), msg="There should be only one child process after Ctrl+C")
