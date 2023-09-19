@@ -40,11 +40,13 @@ static void run_cmds(Command *);
 static void print_cmd(Command *cmd);
 static void print_pgm(Pgm *p);
 void stripwhite(char *);
-
-void handleSIGCHLD(int sig);
+void handleSIGCHLD();
+void handleSIGINT();
+pid_t foreground_id = -1;
 
 int main(void) {
     signal(SIGCHLD, handleSIGCHLD);
+    
 
     for (;;) {
         char *line;
@@ -103,10 +105,12 @@ void cmd_cd(char *dir) {
  * 2. Remove the debug printing before the final submission.
  */
 void run_cmds(Command *cmd_list) {
-    // print_cmd(cmd_list);
+   print_cmd(cmd_list);
     Pgm *cmd = cmd_list->pgm;
     pid_list *pdl_current = NULL;
-    pid_t foreground_id = -1;
+    foreground_id = -1;
+    signal(SIGINT, handleSIGINT);
+
 
     // File descriptor for input and output redirectory destination
     int input_file_fd = STDIN_FILENO;
@@ -203,6 +207,7 @@ void run_cmds(Command *cmd_list) {
             cmd = cmd->next;
         }
     }
+
 }
 
 /*
@@ -267,9 +272,17 @@ void stripwhite(char *string) {
 }
 
 // Collect Zombies
-void handleSIGCHLD(int sig) {
+void handleSIGCHLD() {
     pid_t child_pid;
     while ((child_pid = waitpid(-1, NULL, WNOHANG)) > 0) {
 
     }
+}
+
+void handleSIGINT() {
+    if (foreground_id != -1) {
+        kill(-foreground_id, SIGINT);
+    }
+    // Restore default signal handler for SIGINT
+    signal(SIGINT, SIG_DFL);
 }
