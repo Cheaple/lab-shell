@@ -96,14 +96,7 @@ void cmd_cd(char *dir) {
         fprintf(stderr, "cd: no such file or directory: %s\n", dir);
 }
 
-/* Execute the given command(s).
-
- * Note: The function currently only prints the command(s).
- *
- * TODO:
- * 1. Implement this function so that it executes the given command(s).
- * 2. Remove the debug printing before the final submission.
- */
+/* Execute the given command(s). */
 void run_cmds(Command *cmd_list) {
     // print_cmd(cmd_list);
     Pgm *cmd = cmd_list->pgm;
